@@ -64,6 +64,7 @@ object DatasourcePlugin extends AutoPlugin {
           datasourceDependencies.value,
           (Keys.`package` in Compile).value.toPath,
           datasourceQuasarVersion.value,
+          (scalaBinaryVersion in Compile).value,
           (crossTarget in Compile).value.toPath)
 
       pluginPath.map(_.toFile).unsafeRunSync()

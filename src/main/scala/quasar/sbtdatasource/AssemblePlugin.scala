@@ -60,6 +60,7 @@ object AssemblePlugin {
       dsDependencies: Seq[ModuleID],
       dsJar: Path,
       quasarVersion: String,
+      scalaBinaryVersion: String,
       dstDir: Path)(
       implicit P: Parallel[F, G])
       : F[Path] = {
@@ -85,7 +86,8 @@ object AssemblePlugin {
     // dependencies, *except* for quasar. quasar and its
     // dependencies are already present in the user's
     // `plugins` folder.
-    val resolution = Resolution(dsDependencies.map(moduleIdToDependency).toSet)
+    val resolution =
+      Resolution(dsDependencies.map(moduleIdToDependency(_, scalaBinaryVersion)).toSet)
 
     val cache = Cache.fetch[F](buildDir.toFile, CachePolicy.Update)
 
@@ -189,9 +191,9 @@ object AssemblePlugin {
   // `libraryDependencies`, and coursier wants `Dependency`.
   // Converting is straightforward but requires knowing the
   // `scalaVersion`; I've hard-coded it to 2.12 here.
-  private def moduleIdToDependency(moduleId: ModuleID): Dependency =
+  private def moduleIdToDependency(moduleId: ModuleID, scalaBinaryVersion: String): Dependency =
     Dependency(
-      Module(moduleId.organization, moduleId.name + "_2.12"),
+      Module(moduleId.organization, moduleId.name + "_" + scalaBinaryVersion),
       moduleId.revision)
 
   private object RecursiveDeleteVisitor extends SimpleFileVisitor[Path] {
