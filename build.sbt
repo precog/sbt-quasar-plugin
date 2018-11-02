@@ -12,10 +12,7 @@ scmInfo in ThisBuild := Some(ScmInfo(
 
 lazy val root = project
   .in(file("."))
-  .settings(
-    name := "sbt-quasar-datasource",
-    sbtPlugin := true,
-    sbtVersion := "1.1.6")
+  .settings(name := "sbt-quasar-datasource")
   .settings(libraryDependencies ++= Seq(
     "io.circe" %% "circe-core" % "0.10.1",
     "io.get-coursier" %% "coursier" % "1.1.0-M7",
@@ -23,4 +20,4 @@ lazy val root = project
     // FIXME{coursier}: Align all versions once sbt-coursier-1.1.0-M8 is released
     "io.get-coursier" %% "coursier-cats-interop" % "1.1.0-M8"
   ))
-  .enablePlugins(AutomateHeaderPlugin)
+  .enablePlugins(SbtPlugin, AutomateHeaderPlugin)
