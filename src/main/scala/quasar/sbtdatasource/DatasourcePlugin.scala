@@ -44,13 +44,7 @@ object DatasourcePlugin extends AutoPlugin {
 
   override def projectSettings = Seq(
 
-    datasourceName := "new-datasource",
-
     datasourceDependencies := Seq.empty,
-
-    datasourceModuleFqcn := "UNDEFINED",
-
-    datasourceQuasarVersion := "0.0.0",
 
     libraryDependencies := {
       libraryDependencies.value ++ datasourceDependencies.value ++ Seq(
