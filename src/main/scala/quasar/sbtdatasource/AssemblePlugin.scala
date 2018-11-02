@@ -19,9 +19,10 @@ package quasar.sbtdatasource
 import scala.{Array, List, StringContext}
 import scala.Predef.{ArrowAssoc, String, genericWrapArray, println}
 import scala.collection.Seq
+import scala.sys.process._
 
 import java.io.{File, IOException}
-import java.lang.{Exception, Runtime, SuppressWarnings}
+import java.lang.{Exception, SuppressWarnings}
 import java.nio.file.{Path, Files, SimpleFileVisitor, FileVisitResult}
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
@@ -30,8 +31,10 @@ import java.nio.file.StandardOpenOption.CREATE_NEW
 import cats.Parallel
 import cats.data.ValidatedNel
 import cats.effect.Sync
+import cats.instances.int._
 import cats.instances.list._
 import cats.instances.string._
+import cats.syntax.eq._
 import cats.syntax.either._
 import cats.syntax.flatMap._
 import cats.syntax.foldable._
@@ -106,7 +109,11 @@ object AssemblePlugin {
           // we don't use ~/.ivy2/local here because
           // I've heard that coursier doesn't copy
           // from local caches into other local caches.
-          Fetch.from(Seq(MavenRepository("https://repo1.maven.org/maven2")), cache))
+          Fetch.from(
+            Seq(
+              MavenRepository("https://repo1.maven.org/maven2"),
+              MavenRepository("https://dl.bintray.com/slamdata-inc/maven-public")),
+            cache))
 
         // fetch artifacts in parallel into cache
         artifactsPar <-
@@ -167,12 +174,14 @@ object AssemblePlugin {
       // the files in our plugins folder ($files), with the
       // plugins folder as "root" of the tarball (-C) and
       // put the tarball into the artifacts folder.
-      cmd = s"tar -czvf $tarPath -C $buildDir/ $dsName $dsName.plugin"
+      exitCode <- Sync[F].delay(s"tar -czf $tarPath -C $buildDir/ $dsName $dsName.plugin".!)
 
-      // do it.
-      _ <- Sync[F].delay(Runtime.getRuntime().exec(cmd))
-
-      _ <- Sync[F].delay(println(s"Tarball written to ${tarPath}."))
+      _ <- Sync[F] delay {
+        if (exitCode === 0)
+          println(s"Tarball written to ${tarPath}.")
+        else
+          println(s"WARNING: Nonzero exit code when writing tarball at ${tarPath}.")
+      }
     } yield tarPath
   }
 
