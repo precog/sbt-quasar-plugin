@@ -47,7 +47,7 @@ import coursier.util.Schedulable
 
 import io.circe.Json
 
-import sbt.ModuleID
+import sbt.{CrossVersion, ModuleID}
 
 /** Assemble a datasource plugin tarball, returning the path to the artifact. */
 object AssemblePlugin {
@@ -191,10 +191,15 @@ object AssemblePlugin {
   // `libraryDependencies`, and coursier wants `Dependency`.
   // Converting is straightforward but requires knowing the
   // `scalaVersion`; I've hard-coded it to 2.12 here.
-  private def moduleIdToDependency(moduleId: ModuleID, scalaBinaryVersion: String): Dependency =
+  @SuppressWarnings(Array("org.wartremover.warts.Equals"))
+  private def moduleIdToDependency(moduleId: ModuleID, scalaBinaryVersion: String): Dependency = {
+    val v =
+      if (moduleId.crossVersion == CrossVersion.Disabled()) ""
+      else "_" + scalaBinaryVersion
     Dependency(
-      Module(moduleId.organization, moduleId.name + "_" + scalaBinaryVersion),
+      Module(moduleId.organization, moduleId.name + v),
       moduleId.revision)
+  }
 
   private object RecursiveDeleteVisitor extends SimpleFileVisitor[Path] {
     override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
