@@ -48,8 +48,8 @@ object DatasourcePlugin extends AutoPlugin {
 
     libraryDependencies := {
       libraryDependencies.value ++ datasourceDependencies.value ++ Seq(
-        "com.slamdata" %% "quasar-connector-internal" % datasourceQuasarVersion.value,
-        "com.slamdata" %% "quasar-connector-internal" % datasourceQuasarVersion.value % Test classifier "tests"
+        "com.slamdata" %% "quasar-connector" % datasourceQuasarVersion.value,
+        "com.slamdata" %% "quasar-connector" % datasourceQuasarVersion.value % Test classifier "tests"
       )
     },
 
