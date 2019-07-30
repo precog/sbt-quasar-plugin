@@ -43,7 +43,8 @@ import cats.syntax.parallel._
 import cats.syntax.traverse._
 
 import coursier._
-import coursier.util.Schedulable
+import coursier.cache._
+import coursier.util.{Sync => CSync}
 
 import io.circe.Json
 
@@ -54,7 +55,7 @@ object AssemblePlugin {
   @SuppressWarnings(Array(
     "org.wartremover.warts.NonUnitStatements",
     "org.wartremover.warts.ToString"))
-  def apply[F[_]: Schedulable: Sync, G[_]](
+  def apply[F[_]: CSync: Sync, G[_]](
       dsName: String,
       dsVersion: String,
       dsDependencies: Seq[ModuleID],
@@ -87,11 +88,14 @@ object AssemblePlugin {
     // dependencies are already present in the user's
     // `plugins` folder.
     val resolution =
-      Resolution(dsDependencies.map(moduleIdToDependency(_, scalaBinaryVersion)).toSet)
+      Resolution(dsDependencies.map(moduleIdToDependency(_, scalaBinaryVersion)))
 
-    val cache = Cache.fetch[F](buildDir.toFile, CachePolicy.Update)
+    val cache = 
+      FileCache[F]()
+        .withLocation(buildDir.toFile)
+        .withCachePolicies(List(CachePolicy.Update)).fetch
 
-    type OrFileErrors[A] = ValidatedNel[FileError, A]
+    type OrFileErrors[A] = ValidatedNel[ArtifactError, A]
 
     for {
       _ <- Sync[F] delay {
@@ -111,16 +115,21 @@ object AssemblePlugin {
           // we don't use ~/.ivy2/local here because
           // I've heard that coursier doesn't copy
           // from local caches into other local caches.
-          Fetch.from(
+          ResolutionProcess.fetch(
             Seq(
               MavenRepository("https://repo1.maven.org/maven2"),
               MavenRepository("https://dl.bintray.com/slamdata-inc/maven-public")),
             cache))
 
         // fetch artifacts in parallel into cache
+        pluginCache = 
+          FileCache[F]()
+            .withLocation(pluginDir.toFile)
+            .withCachePolicies(List(CachePolicy.Update))
+
         artifactsPar <-
-          metadata.artifacts.toList.parTraverse(f =>
-            Cache.file[F](f, pluginDir.toFile, CachePolicy.Update).run)
+          metadata.artifacts().toList.parTraverse(f =>
+            pluginCache.file(f).run)
 
         // some contortions to make sure *all* errors
         // are reported when any fail to download.
@@ -197,7 +206,7 @@ object AssemblePlugin {
       if (moduleId.crossVersion == CrossVersion.Disabled()) ""
       else "_" + scalaBinaryVersion
     Dependency(
-      Module(moduleId.organization, moduleId.name + v),
+      Module(Organization(moduleId.organization), ModuleName(moduleId.name + v)),
       moduleId.revision)
   }
 

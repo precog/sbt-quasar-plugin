@@ -14,10 +14,9 @@ lazy val root = project
   .in(file("."))
   .settings(name := "sbt-quasar-datasource")
   .settings(libraryDependencies ++= Seq(
-    "io.circe" %% "circe-core" % "0.10.1",
-    "io.get-coursier" %% "coursier" % "1.1.0-M7",
-    "io.get-coursier" %% "coursier-cache" % "1.1.0-M7",
-    // FIXME{coursier}: Align all versions once sbt-coursier-1.1.0-M8 is released
-    "io.get-coursier" %% "coursier-cats-interop" % "1.1.0-M8"
+    "io.circe" %% "circe-core" % "0.12.0-M4",
+    "io.get-coursier" %% "coursier" % "2.0.0-RC2-1",
+    "io.get-coursier" %% "coursier-cache" % "2.0.0-RC2-1",
+    "io.get-coursier" %% "coursier-cats-interop" % "2.0.0-RC2-1"
   ))
   .enablePlugins(SbtPlugin, AutomateHeaderPlugin)
