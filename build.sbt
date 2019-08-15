@@ -14,7 +14,7 @@ lazy val root = project
   .in(file("."))
   .settings(name := "sbt-quasar-datasource")
   .settings(libraryDependencies ++= Seq(
-    "io.circe" %% "circe-core" % "0.12.0-RC1",
+    "io.circe" %% "circe-core" % "0.12.0-RC3",
     "io.get-coursier" %% "coursier" % "2.0.0-RC2-1",
     "io.get-coursier" %% "coursier-cache" % "2.0.0-RC2-1",
     "io.get-coursier" %% "coursier-cats-interop" % "2.0.0-RC2-1"
