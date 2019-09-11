@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package quasar.sbtdatasource
+package quasar.sbt
 
 import scala.{Array, List, StringContext}
 import scala.Predef.{ArrowAssoc, String, genericWrapArray, println}

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package quasar.sbtdatasource
+package quasar.sbt
 
 import scala.{None, Option}
 import scala.Predef.String
