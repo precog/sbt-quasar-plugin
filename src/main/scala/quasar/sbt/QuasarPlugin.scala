@@ -57,18 +57,12 @@ object QuasarPlugin extends AutoPlugin {
 
       libraryDependencies := {
         val quasarDependencies =
-          (srcFqcn.value.isDefined, dstFqcn.value.isDefined) match {
-            case (true, _) =>
-              Seq(
-                "com.slamdata" %% "quasar-connector" % quasarPluginQuasarVersion.value,
-                "com.slamdata" %% "quasar-connector" % quasarPluginQuasarVersion.value % Test classifier "tests")
-
-            case (_, true) =>
-              Seq("com.slamdata" %% "quasar-api" % quasarPluginQuasarVersion.value)
-
-            case _ =>
-              Seq()
-          }
+          if (srcFqcn.value.isDefined || dstFqcn.value.isDefined)
+            Seq(
+              "com.slamdata" %% "quasar-connector" % quasarPluginQuasarVersion.value,
+              "com.slamdata" %% "quasar-connector" % quasarPluginQuasarVersion.value % Test classifier "tests")
+          else
+            Seq()
 
         libraryDependencies.value ++ quasarPluginDependencies.value ++ quasarDependencies
       },
