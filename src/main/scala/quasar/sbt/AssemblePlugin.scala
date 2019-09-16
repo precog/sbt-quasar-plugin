@@ -88,9 +88,9 @@ object AssemblePlugin {
     // dependencies are already present in the user's
     // `plugins` folder.
     val resolution =
-      Resolution(dsDependencies.map(moduleIdToDependency(_, scalaBinaryVersion)))
+      Resolution().withRootDependencies(dsDependencies.map(moduleIdToDependency(_, scalaBinaryVersion)))
 
-    val cache = 
+    val cache =
       FileCache[F]()
         .withLocation(buildDir.toFile)
         .withCachePolicies(List(CachePolicy.Update)).fetch
@@ -122,7 +122,7 @@ object AssemblePlugin {
             cache))
 
         // fetch artifacts in parallel into cache
-        pluginCache = 
+        pluginCache =
           FileCache[F]()
             .withLocation(pluginDir.toFile)
             .withCachePolicies(List(CachePolicy.Update))
@@ -205,7 +205,8 @@ object AssemblePlugin {
     val v =
       if (moduleId.crossVersion == CrossVersion.Disabled()) ""
       else "_" + scalaBinaryVersion
-    Dependency(
+
+    Dependency.of(
       Module(Organization(moduleId.organization), ModuleName(moduleId.name + v)),
       moduleId.revision)
   }
