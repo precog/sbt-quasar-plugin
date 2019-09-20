@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package quasar.sbtdatasource
+package quasar.sbt
 
 import scala.{Array, List, StringContext}
 import scala.Predef.{ArrowAssoc, String, genericWrapArray, println}
@@ -50,7 +50,7 @@ import io.circe.Json
 
 import sbt.{CrossVersion, ModuleID}
 
-/** Assemble a datasource plugin tarball, returning the path to the artifact. */
+/** Assemble a plugin tarball, returning the path to the artifact. */
 object AssemblePlugin {
   @SuppressWarnings(Array(
     "org.wartremover.warts.NonUnitStatements",
@@ -75,7 +75,7 @@ object AssemblePlugin {
     // The jar file's own path.
     val jarPath = pluginDir.resolve(dsJar.getFileName)
 
-    // the datasource jar's path relative to the build dir
+    // the plugin jar's path relative to the build dir
     // included in the generated .plugin file to let quasar
     // know where to load it from.
     val relativeJarPath = buildDir.relativize(jarPath)
@@ -83,14 +83,14 @@ object AssemblePlugin {
     // the path to the generated .plugin file.
     val pluginPath = buildDir.resolve(s"$dsName.plugin")
 
-    // start coursier on resolving all of the datasource's
+    // start coursier on resolving all of the plugin's
     // dependencies, *except* for quasar. quasar and its
     // dependencies are already present in the user's
     // `plugins` folder.
     val resolution =
-      Resolution(dsDependencies.map(moduleIdToDependency(_, scalaBinaryVersion)))
+      Resolution().withRootDependencies(dsDependencies.map(moduleIdToDependency(_, scalaBinaryVersion)))
 
-    val cache = 
+    val cache =
       FileCache[F]()
         .withLocation(buildDir.toFile)
         .withCachePolicies(List(CachePolicy.Update)).fetch
@@ -122,7 +122,7 @@ object AssemblePlugin {
             cache))
 
         // fetch artifacts in parallel into cache
-        pluginCache = 
+        pluginCache =
           FileCache[F]()
             .withLocation(pluginDir.toFile)
             .withCachePolicies(List(CachePolicy.Update))
@@ -144,7 +144,7 @@ object AssemblePlugin {
       } yield jarFiles
 
       // coursier prefers that we fetch metadata before fetching
-      // artifacts. we do that in parallel with copying the datasource
+      // artifacts. we do that in parallel with copying the plugin
       // jar to its new place, because they don't depend on one
       // another.
       fetchedJarFiles <- copyJar &> fetchJarFiles
@@ -159,7 +159,7 @@ object AssemblePlugin {
       cpJson = Json.arr(classPath.map(p => Json.fromString(p.toString)) : _*)
       mainJar = Json.fromString(relativeJarPath.toString)
 
-      // include the datasource jar and classpath into the .plugin file
+      // include the plugin jar and classpath into the .plugin file
       outJson = Json.obj("mainJar" -> mainJar, "classPath" -> cpJson).spaces2
 
       // delete an old .plugin file, write the new one
@@ -205,7 +205,8 @@ object AssemblePlugin {
     val v =
       if (moduleId.crossVersion == CrossVersion.Disabled()) ""
       else "_" + scalaBinaryVersion
-    Dependency(
+
+    Dependency.of(
       Module(Organization(moduleId.organization), ModuleName(moduleId.name + v)),
       moduleId.revision)
   }

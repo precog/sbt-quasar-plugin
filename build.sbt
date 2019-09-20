@@ -4,19 +4,19 @@ performMavenCentralSync in ThisBuild := false   // basically just ignores all th
 
 publishAsOSSProject in ThisBuild := true
 
-homepage in ThisBuild := Some(url("https://github.com/slamdata/sbt-quasar-datasource"))
+homepage in ThisBuild := Some(url("https://github.com/slamdata/sbt-quasar-plugin"))
 
 scmInfo in ThisBuild := Some(ScmInfo(
-  url("https://github.com/slamdata/sbt-quasar-datasource"),
-  "scm:git@github.com:slamdata/sbt-quasar-datasource.git"))
+  url("https://github.com/slamdata/sbt-quasar-plugin"),
+  "scm:git@github.com:slamdata/sbt-quasar-plugin.git"))
 
 lazy val root = project
   .in(file("."))
-  .settings(name := "sbt-quasar-datasource")
+  .settings(name := "sbt-quasar-plugin")
   .settings(libraryDependencies ++= Seq(
     "io.circe" %% "circe-core" % "0.12.0-RC1",
-    "io.get-coursier" %% "coursier" % "2.0.0-RC3-4",
-    "io.get-coursier" %% "coursier-cache" % "2.0.0-RC3-4",
-    "io.get-coursier" %% "coursier-cats-interop" % "2.0.0-RC3-4"
+    "io.get-coursier" %% "coursier" % "2.0.0-RC3-1",
+    "io.get-coursier" %% "coursier-cache" % "2.0.0-RC3-1",
+    "io.get-coursier" %% "coursier-cats-interop" % "2.0.0-RC3-1"
   ))
   .enablePlugins(SbtPlugin, AutomateHeaderPlugin)
