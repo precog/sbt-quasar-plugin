@@ -62,7 +62,8 @@ object AssemblePlugin {
       dsJar: Path,
       quasarVersion: String,
       scalaBinaryVersion: String,
-      dstDir: Path)(
+      dstDir: Path,
+      extraResolvers: Seq[MavenRepository])(
       implicit P: Parallel[F, G])
       : F[Path] = {
 
@@ -118,7 +119,7 @@ object AssemblePlugin {
           ResolutionProcess.fetch(
             Seq(
               MavenRepository("https://repo1.maven.org/maven2"),
-              MavenRepository("https://dl.bintray.com/slamdata-inc/maven-public")),
+              MavenRepository("https://dl.bintray.com/slamdata-inc/maven-public")) ++ extraResolvers,
             cache))
 
         // fetch artifacts in parallel into cache

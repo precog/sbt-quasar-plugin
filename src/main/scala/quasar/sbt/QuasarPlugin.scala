@@ -22,6 +22,7 @@ import scala.collection.Seq
 import scala.concurrent.ExecutionContext
 
 import cats.effect.IO
+import coursier.MavenRepository
 import coursier.interop.cats._
 import sbt._, Keys._
 
@@ -36,6 +37,7 @@ object QuasarPlugin extends AutoPlugin {
     val quasarPluginDatasourceFqcn: SettingKey[Option[String]] = settingKey[Option[String]]("The fully qualified class name of the datasource module.")
     val quasarPluginDestinationFqcn: SettingKey[Option[String]] = settingKey[Option[String]]("The fully qualified class name of the destination module.")
     val quasarPluginQuasarVersion: SettingKey[String] = settingKey[String]("Defines the version of Quasar to depend on.")
+    val quasarPluginExtraResolvers: SettingKey[Seq[MavenRepository]] = settingKey[Seq[MavenRepository]]("Extra resolvers to use when assembling plugin.")
 
     val quasarPluginAssemble: TaskKey[File] = taskKey[File]("Produces the tarball containing the quasar plugin and all non-quasar dependencies.")
   }
@@ -54,6 +56,8 @@ object QuasarPlugin extends AutoPlugin {
       quasarPluginDatasourceFqcn := None,
 
       quasarPluginDestinationFqcn := None,
+
+      quasarPluginExtraResolvers := Seq.empty,
 
       libraryDependencies := {
         val quasarDependencies =
@@ -84,7 +88,8 @@ object QuasarPlugin extends AutoPlugin {
             (Keys.`package` in Compile).value.toPath,
             quasarPluginQuasarVersion.value,
             (scalaBinaryVersion in Compile).value,
-            (crossTarget in Compile).value.toPath)
+            (crossTarget in Compile).value.toPath,
+            quasarPluginExtraResolvers.value)
 
         pluginPath.map(_.toFile).unsafeRunSync()
       })
