@@ -5,3 +5,9 @@
 ```sbt
 addSbtPlugin("com.precog" % "sbt-quasar-plugin" % <version>)
 ```
+
+And on each project which represents a plugin:
+
+```sbt
+enablePlugins(QuasarPlugin)
+```
