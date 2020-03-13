@@ -4,8 +4,6 @@ performMavenCentralSync in ThisBuild := false   // basically just ignores all th
 
 publishAsOSSProject in ThisBuild := true
 
-ThisBuild / githubRepository := "sbt-quasar-plugin"
-
 homepage in ThisBuild := Some(url("https://github.com/precog/sbt-quasar-plugin"))
 
 scmInfo in ThisBuild := Some(ScmInfo(
