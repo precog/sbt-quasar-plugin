@@ -49,7 +49,7 @@ object QuasarPlugin extends AutoPlugin {
 
   override def requires = plugins.JvmPlugin && GitHubPackagesPlugin
 
-  override def trigger = allRequirements
+  override def trigger = noTrigger
 
   override def projectSettings = {
     val srcFqcn = quasarPluginDatasourceFqcn
