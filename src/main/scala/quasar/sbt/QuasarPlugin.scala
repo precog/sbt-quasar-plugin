@@ -1,5 +1,5 @@
 /*
- * Copyright 2014–2019 SlamData Inc.
+ * Copyright 2020 Precog Data
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package quasar.sbt
 
-import scala.{None, Option}
+import scala.{sys, None, Option}
 import scala.Predef.String
 import scala.collection.Seq
 import scala.concurrent.ExecutionContext
@@ -24,6 +24,9 @@ import scala.concurrent.ExecutionContext
 import cats.effect.IO
 import coursier.MavenRepository
 import coursier.interop.cats._
+
+import sbtghpackages.{GitHubPackagesKeys, GitHubPackagesPlugin}
+
 import sbt._, Keys._
 
 object QuasarPlugin extends AutoPlugin {
@@ -44,7 +47,9 @@ object QuasarPlugin extends AutoPlugin {
 
   import autoImport._
 
-  override def requires = plugins.JvmPlugin
+  override def requires = plugins.JvmPlugin && GitHubPackagesPlugin
+
+  override def trigger = noTrigger
 
   override def projectSettings = {
     val srcFqcn = quasarPluginDatasourceFqcn
@@ -63,8 +68,8 @@ object QuasarPlugin extends AutoPlugin {
         val quasarDependencies =
           if (srcFqcn.value.isDefined || dstFqcn.value.isDefined)
             Seq(
-              "com.slamdata" %% "quasar-connector" % quasarPluginQuasarVersion.value,
-              "com.slamdata" %% "quasar-connector" % quasarPluginQuasarVersion.value % Test classifier "tests")
+              "com.precog" %% "quasar-connector" % quasarPluginQuasarVersion.value,
+              "com.precog" %% "quasar-connector" % quasarPluginQuasarVersion.value % Test classifier "tests")
           else
             Seq()
 
@@ -80,6 +85,12 @@ object QuasarPlugin extends AutoPlugin {
       },
 
       quasarPluginAssemble := {
+        val credentials = GitHubPackagesPlugin.inferredGitHubCredentials(
+          GitHubPackagesKeys.githubActor.value,
+          GitHubPackagesKeys.githubTokenSource.value)
+          .getOrElse(sys.error("unable to infer github credentials based on `githubActor` and `githubTokenSource`"))
+          .asInstanceOf[DirectCredentials]    // not a great strategy, but we need to refactor sbt-github-packages to avoid this
+
         val pluginPath =
           AssemblePlugin[IO, IO.Par](
             quasarPluginName.value,
@@ -89,7 +100,9 @@ object QuasarPlugin extends AutoPlugin {
             quasarPluginQuasarVersion.value,
             (scalaBinaryVersion in Compile).value,
             (crossTarget in Compile).value.toPath,
-            quasarPluginExtraResolvers.value)
+            quasarPluginExtraResolvers.value,
+            credentials.userName,
+            credentials.passwd)
 
         pluginPath.map(_.toFile).unsafeRunSync()
       })

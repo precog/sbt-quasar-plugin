@@ -1,5 +1,5 @@
 /*
- * Copyright 2014–2019 SlamData Inc.
+ * Copyright 2020 Precog Data
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package quasar.sbt
 
-import scala.{Array, List, StringContext}
+import scala.{Array, List, Some, StringContext}
 import scala.Predef.{ArrowAssoc, String, genericWrapArray, println}
 import scala.collection.Seq
 import scala.sys.process._
@@ -44,6 +44,7 @@ import cats.syntax.traverse._
 
 import coursier._
 import coursier.cache._
+import coursier.core.Authentication
 import coursier.util.{Sync => CSync}
 
 import io.circe.Json
@@ -63,7 +64,9 @@ object AssemblePlugin {
       quasarVersion: String,
       scalaBinaryVersion: String,
       dstDir: Path,
-      extraResolvers: Seq[MavenRepository])(
+      extraResolvers: Seq[MavenRepository],
+      githubActor: String,
+      githubToken: String)(
       implicit P: Parallel[F, G])
       : F[Path] = {
 
@@ -119,7 +122,7 @@ object AssemblePlugin {
           ResolutionProcess.fetch(
             Seq(
               MavenRepository("https://repo1.maven.org/maven2"),
-              MavenRepository("https://dl.bintray.com/slamdata-inc/maven-public")) ++ extraResolvers,
+              MavenRepository("https://maven.pkg.github.com/precog/_", authentication = Some(Authentication(user = githubActor, password = githubToken)))) ++ extraResolvers,
             cache))
 
         // fetch artifacts in parallel into cache
@@ -204,7 +207,7 @@ object AssemblePlugin {
   @SuppressWarnings(Array("org.wartremover.warts.Equals"))
   private def moduleIdToDependency(moduleId: ModuleID, scalaBinaryVersion: String): Dependency = {
     val v =
-      if (moduleId.crossVersion == CrossVersion.Disabled()) ""
+      if (moduleId.crossVersion == CrossVersion.disabled) ""
       else "_" + scalaBinaryVersion
 
     Dependency.of(
