@@ -85,11 +85,8 @@ object QuasarPlugin extends AutoPlugin {
       },
 
       quasarPluginAssemble := {
-        val credentials = GitHubPackagesPlugin.inferredGitHubCredentials(
-          GitHubPackagesKeys.githubActor.value,
-          GitHubPackagesKeys.githubTokenSource.value)
+        val token = GitHubPackagesPlugin.resolveTokenSource(GitHubPackagesKeys.githubTokenSource.value)
           .getOrElse(sys.error("unable to infer github credentials based on `githubActor` and `githubTokenSource`"))
-          .asInstanceOf[DirectCredentials]    // not a great strategy, but we need to refactor sbt-github-packages to avoid this
 
         val pluginPath =
           AssemblePlugin[IO, IO.Par](
@@ -101,8 +98,8 @@ object QuasarPlugin extends AutoPlugin {
             (scalaBinaryVersion in Compile).value,
             (crossTarget in Compile).value.toPath,
             quasarPluginExtraResolvers.value,
-            credentials.userName,
-            credentials.passwd)
+            "_",
+            token)
 
         pluginPath.map(_.toFile).unsafeRunSync()
       })

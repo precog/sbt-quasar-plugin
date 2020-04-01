@@ -1,12 +1,12 @@
 import scala.collection.Seq
 
-performMavenCentralSync in ThisBuild := false   // basically just ignores all the sonatype sync parts of things
+ThisBuild / scalaVersion := "2.12.10"
 
-publishAsOSSProject in ThisBuild := true
+ThisBuild / publishAsOSSProject in ThisBuild := true
 
-homepage in ThisBuild := Some(url("https://github.com/precog/sbt-quasar-plugin"))
+ThisBuild / homepage := Some(url("https://github.com/precog/sbt-quasar-plugin"))
 
-scmInfo in ThisBuild := Some(ScmInfo(
+ThisBuild / scmInfo := Some(ScmInfo(
   url("https://github.com/precog/sbt-quasar-plugin"),
   "scm:git@github.com:precog/sbt-quasar-plugin.git"))
 
@@ -20,4 +20,4 @@ libraryDependencies ++= Seq(
   "io.get-coursier" %% "coursier-cache" % "2.0.0-RC3-1",
   "io.get-coursier" %% "coursier-cats-interop" % "2.0.0-RC3-1")
 
-addSbtPlugin("com.codecommit" % "sbt-github-packages" % "0.4.2")
+addSbtPlugin("com.codecommit" % "sbt-github-packages" % "0.5.0")
