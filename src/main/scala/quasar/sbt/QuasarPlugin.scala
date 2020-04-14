@@ -39,6 +39,7 @@ object QuasarPlugin extends AutoPlugin {
     val quasarPluginDependencies: SettingKey[Seq[ModuleID]] = settingKey[Seq[ModuleID]]("Declares the non-quasar managed dependencies.")
     val quasarPluginDatasourceFqcn: SettingKey[Option[String]] = settingKey[Option[String]]("The fully qualified class name of the datasource module.")
     val quasarPluginDestinationFqcn: SettingKey[Option[String]] = settingKey[Option[String]]("The fully qualified class name of the destination module.")
+    val quasarPluginSchedulerFqcn: SettingKey[Option[String]] = settingKey[Option[String]]("The fully qualified class name of the scheduler module.")
     val quasarPluginQuasarVersion: SettingKey[String] = settingKey[String]("Defines the version of Quasar to depend on.")
     val quasarPluginExtraResolvers: SettingKey[Seq[MavenRepository]] = settingKey[Seq[MavenRepository]]("Extra resolvers to use when assembling plugin.")
 
@@ -54,6 +55,7 @@ object QuasarPlugin extends AutoPlugin {
   override def projectSettings = {
     val srcFqcn = quasarPluginDatasourceFqcn
     val dstFqcn = quasarPluginDestinationFqcn
+    val skdFqcn = quasarPluginSchedulerFqcn
 
     Seq(
       quasarPluginDependencies := Seq.empty,
@@ -62,11 +64,13 @@ object QuasarPlugin extends AutoPlugin {
 
       quasarPluginDestinationFqcn := None,
 
+      quasarPluginSchedulerFqcn := None,
+
       quasarPluginExtraResolvers := Seq.empty,
 
       libraryDependencies := {
         val quasarDependencies =
-          if (srcFqcn.value.isDefined || dstFqcn.value.isDefined)
+          if (srcFqcn.value.isDefined || dstFqcn.value.isDefined || skdFqcn.value.isDefined)
             Seq(
               "com.precog" %% "quasar-connector" % quasarPluginQuasarVersion.value,
               "com.precog" %% "quasar-connector" % quasarPluginQuasarVersion.value % Test classifier "tests")
@@ -79,7 +83,8 @@ object QuasarPlugin extends AutoPlugin {
       packageOptions in (Compile, packageBin) += {
         val attrs =
           srcFqcn.value.toList.map(("Datasource-Module", _)) ++
-          dstFqcn.value.toList.map(("Destination-Module", _))
+          dstFqcn.value.toList.map(("Destination-Module", _)) ++
+          skdFqcn.value.toList.map(("Scheduler-Module", _))
 
         Package.ManifestAttributes(attrs: _*),
       },
