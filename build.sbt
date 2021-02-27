@@ -1,6 +1,6 @@
 import scala.collection.Seq
 
-ThisBuild / scalaVersion := "2.12.10"
+ThisBuild / scalaVersion := "2.12.13"
 
 ThisBuild / publishAsOSSProject in ThisBuild := true
 
