@@ -1,6 +1,6 @@
 import scala.collection.Seq
 
-ThisBuild / scalaVersion := "2.12.10"
+ThisBuild / scalaVersion := "2.12.12"
 
 ThisBuild / publishAsOSSProject in ThisBuild := true
 
@@ -9,6 +9,9 @@ ThisBuild / homepage := Some(url("https://github.com/precog/sbt-quasar-plugin"))
 ThisBuild / scmInfo := Some(ScmInfo(
   url("https://github.com/precog/sbt-quasar-plugin"),
   "scm:git@github.com:precog/sbt-quasar-plugin.git"))
+
+ThisBuild / githubOwner := "precog"
+ThisBuild / githubRepository := "sbt-quasar-plugin"
 
 name := "sbt-quasar-plugin"
 
