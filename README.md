@@ -10,6 +10,7 @@ If using Scala, some tooling does exist to assist in the building and packaging 
 addSbtPlugin("com.precog" %% "sbt-quasar-plugin" % <version/>)
 ```
 
+
 Replace `<version/>` with the latest version of the plugin, which can be determined by looking at the Git tags on the repository.
 
 Once this is done, add the followint to your `build.sbt`:
