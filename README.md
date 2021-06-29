@@ -37,19 +37,18 @@ The remainder of this guide will be split between datasource- and destination-ty
 
 ### Datasources
 
-A datasource module must extend either the `quasar.connector.LightweightDatasourceModule` trait or `quasar.connector.HeavyweightDatasourceModule`. This guide will not touch on `HeavyweightDatasourceModule`s as their implementation is extremely complex, though they are commensurately granted much much more power (including the ability to entirely replace the Precog evaluation runtime). All currently-available datasources *aside* from Precog's own internal runtime are implemented as `LightweightDatasourceModule`s. This trait defines several functions which must be implemented to define a datasource:
-
+A datasource module must extend the `quasar.connector.DatasourceModule`:
 ```scala
-trait LightweightDatasourceModule {
+trait DatasourceModule {
   def kind: DatasourceType
 
   def sanitizeConfig(config: Json): Json
 
-  def lightweightDatasource[
+  def datasource[
       F[_]: ConcurrentEffect: ContextShift: MonadResourceErr: Timer](
       config: Json)(
       implicit ec: ExecutionContext)
-      : Resource[F, Either[InitializationError[Json], LightweightDatasourceModule.DS[F]]]
+      : Resource[F, Either[InitializationError[Json], DatasourceModule.DS[F]]]
 }
 ```
 
@@ -69,7 +68,7 @@ If you get weird compile errors, try adding that.
 
 The second important function is `sanitizeConfig`. This function takes a parameter of type `argonaut.Json` (from the [Argonaut JSON library](http://argonaut.io)) representing the configuration parameters for your plugin. You are free to define the config in whatever shape you see fit; quasar makes no assumptions about it. The `sanitizeConfig` function takes the config as a parameter and *returns* that same config, but with any sensitive information redacted. For example, if your config contains authentication information for your datasource, you should redact this from the returned `Json` value. This function will be used by quasar before the config is ever produced or logged in any form.
 
-The final function is `lightweightDatasource`. This function is considerably more imposing at first glance, but its basic function is very simple: take the config as a parameter and return a `Resource` which manages the lifecycle of the datasource. The configuration would be expected to be something like a set of database credentials and an address, and the lifecycle of the datasource would start by establishing a connection to that database and authenticating using the supplied credentials. The lifecycle would end by closing the connection to the database and freeing any scarce resources that may have been allocated.
+The final function is `datasource`. This function is considerably more imposing at first glance, but its basic function is very simple: take the config as a parameter and return a `Resource` which manages the lifecycle of the datasource. The configuration would be expected to be something like a set of database credentials and an address, and the lifecycle of the datasource would start by establishing a connection to that database and authenticating using the supplied credentials. The lifecycle would end by closing the connection to the database and freeing any scarce resources that may have been allocated.
 
 The `Resource` type comes from [Cats Effect](https://typelevel.org/cats-effect/datatypes/resource.html) and it safely encapsulates initializing and freeing your datasource. It is possible to create a `Resource` using the `Resource.make` function. For example:
 
@@ -81,7 +80,7 @@ val initializeConnection: F[Connection] = Sync[F] delay {
   c
 }
 
-val r: Resource[F, Connection] = 
+val r: Resource[F, Connection] =
   Resource.make(initializeConnection) { conn =>
     Sync[F] delay {
       conn.close()
@@ -91,23 +90,17 @@ val r: Resource[F, Connection] =
 
 This creates a `Resource` for a hypothetical `Connection`. You'll note the use of the `Sync[F] delay { ... }` syntax. You'll end up using this a lot in any plugin. You can find a high-level description of the meaning of this construct [here](https://typelevel.org/cats-effect/datatypes/io.html#synchronous-effects--ioapply), but broadly speaking, it takes a block of code and wraps it up as an *effect* which will be evaluated at some later point in time. This syntax allows the quasar framework to fully control the lifecycle of your plugin, despite that lifecycle being defined *in* your plugin. In this case, we're defining what it means to initialize a `Connection` (and later on, we define what it means to `close()` that connection). These effects are safely captured by `delay`, and you don't need to worry about carefully ordering your statements or accidentally leaking resources.
 
-Speaking of resources, the `Resource.make` function takes two effects, one which *creates* a resource and another which *releases* that resource, and returns a `Resource` instance which safely encapsulates that resource's lifecycle. The `lightweightConnector` function must produce a `Resource[F, LightweightDatasourceModule.DS[F]]`. This `DS` type expands to the following imposing signature:
+Speaking of resources, the `Resource.make` function takes two effects, one which *creates* a resource and another which *releases* that resource, and returns a `Resource` instance which safely encapsulates that resource's lifecycle. The `datasource` function must produce a `Resource[F, DatasourceModule.DS[F]]`. This `DS` type expands to the following imposing signature:
 
 ```scala
 Datasource[F, Stream[F, ?], InterpretedRead[ResourcePath], QueryResult[F], ResourcePathType.Physical]
-```
-
-Or, in a more simplified and useful form:
-
-```scala
-LightweightDatasource[F, Stream[F, ?], QueryResult[F]]
 ```
 
 The `Stream` type in question here is from [fs2](https://fs2.io), a purely functional streaming library for Scala. We'll be seeing a lot more of this library later on, but suffice it to say that this is the mechanism by which it is possible to safely, *incrementally* load large amounts of data from a datasource with high performance.
 
 Remember that we need to return a `Resource` which encapsulates one of these things, so it may be prudent to examine exactly what this is.
 
-A `Datasource` (or in this case, a `LightweightDatasource`) is a *running* instance of your plugin. While the `DatasourceModule` represents a constructor which is capable of building instances of your plugin, the `Datasource` itself is just such an instance. Note that your plugin may be instantiated multiple times with different configurations. For example, if someone needs to load data from two different databases of the same type. Any running instance of your datasource plugin will be responsible for performing the actual loading of data via whatever mechanism is exposed by the target data source. More specifically, it will need to define the following three functions:
+A `Datasource` (or in this case, a `DatasourceModule.DS`) is a *running* instance of your plugin. While the `DatasourceModule` represents a constructor which is capable of building instances of your plugin, the `Datasource` itself is just such an instance. Note that your plugin may be instantiated multiple times with different configurations. For example, if someone needs to load data from two different databases of the same type. Any running instance of your datasource plugin will be responsible for performing the actual loading of data via whatever mechanism is exposed by the target data source. More specifically, it will need to define the following three functions:
 
 ```scala
 /** The type of this datasource. */
@@ -122,7 +115,7 @@ def prefixedChildPaths(
 def evaluate(query: InterpretedRead[ResourcePath]): F[QueryResult[F]]
 ```
 
-Let's go through these one at a time. The first function, `kind` is exactly the same as `kind` in your module, and should return the same value. It's here to simplify some things in the quasar runtime. 
+Let's go through these one at a time. The first function, `kind` is exactly the same as `kind` in your module, and should return the same value. It's here to simplify some things in the quasar runtime.
 
 `pathIsResource` is simply the equivalent of checking whether a given path 1) exists, and 2) is a "file". Obviously, not all datasources have a notion of files (for example, most NoSQL databases have some notion of a *collection*, which is kind of like a file, but exists at the top level). The definition of a file for the purposes of the datasource API is simple: if you can read the contents of a given path, it's a file; if a given path has sub-paths, it's not a file. This is kind of like `[ -f ... ]` in common Unix shells.
 
@@ -136,7 +129,7 @@ Let's go through these one at a time. The first function, `kind` is exactly the 
 final case class InterpretedRead[A](path: A, stages: ScalarStages)
 ```
 
-`ScalarStages` are important for semantically-rich sources such as Mongo, but most datasources will be able to simply ignore them. `path` is what is actually interesting in most cases, and in our `LightweightDatasource` as defined above, `path` will be a `ResourcePath`. A `ResourcePath` is either a `Leaf` (which is defined by a [Pathy](https://github.com/precog/scala-pathy) file path of type `Path[Abs, Sandboxed, Sandboxed]`) or `Root`, which simply indicates the root path of the virtual filesystem (i.e. `/`).
+`ScalarStages` are important for semantically-rich sources such as Mongo, but most datasources will be able to simply ignore them. `path` is what is actually interesting in most cases, and in our `DatasourceModule.DS` as defined above, `path` will be a `ResourcePath`. A `ResourcePath` is either a `Leaf` (which is defined by a [Pathy](https://github.com/precog/scala-pathy) file path of type `Path[Abs, Sandboxed, Sandboxed]`) or `Root`, which simply indicates the root path of the virtual filesystem (i.e. `/`).
 
 `QueryResult` is what we're trying to *produce* from an evaluation, and it can take on one of three different forms:
 
@@ -174,7 +167,7 @@ All of the production datasources distributed with Precog are open source under 
 
 Every plugin must contain a primary module which is a class with the following properties:
 
-- Must extend either `quasar.connector.LightweightDatasourceModule` or `quasar.connector.HeavyweightDatasourceModule` (for datasources), or `quasar.connector.DestinationModule` (for destinations). Note that for datasources, you *almost* always want to extend `LightweightDatasourceModule`.
+- Must extend `quasar.connector.DatasourceModule`
 - Must define a `static` field, `MODULE$`, which contains the singleton instance of the class. If using Scala, this can be achieved by defining the primary module as an `object`.
 
 An example of such a module in Java would be the following:
@@ -182,7 +175,7 @@ An example of such a module in Java would be the following:
 ```java
 package com.company.example;
 
-public final class ExampleDatasourceModule implements LightweightDatasourceModule {
+public final class ExampleDatasourceModule implements DatasourceModule {
   public static final ExampleDatasourceModule MODULE$ = new ExampleDatasourceModule();
 
   private ExampleDatasourceModule() {}
